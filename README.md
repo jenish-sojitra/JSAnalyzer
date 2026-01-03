@@ -36,7 +36,8 @@ A powerful Burp Suite extension for JavaScript static analysis. Extracts API end
    - Repeater
 3. Select **"Analyze JS with JS Analyzer"**
 4. Check the **JS Analyzer** tab for results
-5. 
+
+You can select multiple requests from HTTP history or Dashboard and send it all together to JS Analayzer.
 
 ## What It Detects
 
