@@ -250,10 +250,28 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab):
         try:
             req_info = self._helpers.analyzeRequest(message_info)
             url = str(req_info.getUrl())
+            headers = req_info.getHeaders()
+            host_header = None
+            origin_header = None
+            referer_header = None
+            for header in headers:
+                if header.lower().startswith('host:'):
+                    host_header = header.split(':', 1)[1].strip()
+                if header.lower().startswith('origin:'):
+                    origin_header = header.split(':', 1)[1].strip()
+                if header.lower().startswith('referer:'):
+                    referer_header = header.split(':', 1)[1].strip()
+            if not host_header:
+                host_header = "Unknown"
+            if not origin_header:
+                origin_header = "Unknown"
+            if not referer_header:
+                referer_header = "Unknown"
             source_name = url.split('/')[-1].split('?')[0] if '/' in url else url
             if len(source_name) > 40:
                 source_name = source_name[:40] + "..."
-        except:
+        except Exception as e:
+            self._log("Error getting request info: " + str(e))
             url = "Unknown"
             source_name = "Unknown"
         
@@ -274,7 +292,7 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab):
             for match in pattern.finditer(body):
                 value = match.group(1).strip()
                 if self._is_valid_endpoint(value):
-                    finding = self._add_finding("endpoints", value, source_name)
+                    finding = self._add_finding("endpoints", value, source_name, host_header, origin_header, referer_header)
                     if finding:
                         new_findings.append(finding)
         
@@ -283,7 +301,7 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab):
             for match in pattern.finditer(body):
                 value = match.group(1).strip() if match.lastindex else match.group(0).strip()
                 if self._is_valid_url(value):
-                    finding = self._add_finding("urls", value, source_name)
+                    finding = self._add_finding("urls", value, source_name, host_header, origin_header, referer_header)
                     if finding:
                         new_findings.append(finding)
         
@@ -293,7 +311,7 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab):
                 value = match.group(1).strip()
                 if self._is_valid_secret(value):
                     masked = value[:10] + "..." + value[-4:] if len(value) > 20 else value
-                    finding = self._add_finding("secrets", masked, source_name)
+                    finding = self._add_finding("secrets", masked, source_name, host_header, origin_header, referer_header)
                     if finding:
                         new_findings.append(finding)
         
@@ -301,7 +319,7 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab):
         for match in EMAIL_PATTERN.finditer(body):
             value = match.group(1).strip()
             if self._is_valid_email(value):
-                finding = self._add_finding("emails", value, source_name)
+                finding = self._add_finding("emails", value, source_name, host_header, origin_header, referer_header)
                 if finding:
                     new_findings.append(finding)
         
@@ -309,7 +327,7 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab):
         for match in FILE_PATTERNS.finditer(body):
             value = match.group(1).strip()
             if self._is_valid_file(value):
-                finding = self._add_finding("files", value, source_name)
+                finding = self._add_finding("files", value, source_name, host_header, origin_header, referer_header)
                 if finding:
                     new_findings.append(finding)
         
@@ -319,8 +337,8 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab):
             self.panel.add_findings(new_findings, source_name)
         else:
             self._log("No new findings")
-    
-    def _add_finding(self, category, value, source):
+
+    def _add_finding(self, category, value, source, host_header, origin_header, referer_header):
         """Add a finding if not duplicate."""
         key = category + ":" + value
         if key in self.seen_values:
@@ -331,6 +349,9 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab):
             "category": category,
             "value": value,
             "source": source,
+            "host": host_header,
+            "origin": origin_header,
+            "referer": referer_header
         }
         self.all_findings.append(finding)
         return finding

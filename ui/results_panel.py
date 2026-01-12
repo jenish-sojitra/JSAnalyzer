@@ -111,7 +111,7 @@ class ResultsPanel(JPanel):
             panel = JPanel(BorderLayout())
             
             # 2 columns: Value, Source
-            columns = ["Value", "Source"]
+            columns = ["Value", "Source", "Host", "Origin", "Referer"]
             model = NonEditableTableModel(columns, 0)
             self.models[key] = model
             
@@ -122,6 +122,9 @@ class ResultsPanel(JPanel):
             # Set column widths
             table.getColumnModel().getColumn(0).setPreferredWidth(500)
             table.getColumnModel().getColumn(1).setPreferredWidth(150)
+            table.getColumnModel().getColumn(2).setPreferredWidth(150)
+            table.getColumnModel().getColumn(3).setPreferredWidth(150)
+            table.getColumnModel().getColumn(4).setPreferredWidth(150)
             
             self.tables[key] = table
             
@@ -144,6 +147,9 @@ class ResultsPanel(JPanel):
                 self.findings[category].append({
                     "value": finding.get("value", ""),
                     "source": finding.get("source", source_name),
+                    "host": finding.get("host", ""),
+                    "origin": finding.get("origin", ""),
+                    "referer": finding.get("referer", ""),
                 })
         
         self._refresh_tables()
@@ -175,6 +181,9 @@ class ResultsPanel(JPanel):
                 model.addRow([
                     item.get("value", ""),
                     item.get("source", ""),
+                    item.get("host", ""),
+                    item.get("origin", ""),
+                    item.get("referer", ""),
                 ])
                 count += 1
             
